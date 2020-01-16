@@ -98,3 +98,25 @@ function onChange(control, oldValue, newValue, isLoading, isTemplate) {
         g_form.flash('state', 'teal', -4);
     }
 }
+
+// Lab 2.4
+
+function onChange(control, oldValue, newValue, isLoading, isTemplate) {
+    if (isLoading || newValue === '') {
+        return;
+    }
+
+    var affectedCI = g_form.getReference('cmdb_ci', checkCI);
+
+    function checkCI(affectedCI) {
+        if(affectedCI.name == '3D PInball') {
+            g_form.setValue('priority', 4);
+            g_form.setValue('risk', 5);
+            g_form.setValue('impact', 3);
+
+            g_form.setReadOnly('priority', true);
+            g_form.setReadOnly('risk', true);
+            g_form.setReadOnly('impact', true);
+        }
+    }
+}
