@@ -120,3 +120,20 @@ function onChange(control, oldValue, newValue, isLoading, isTemplate) {
         }
     }
 }
+
+// Lab 3.1
+
+function onCondition() {
+    if(g_form.getValue('close_code') == '' || g_form.getValue('close_notes') == '' || g_form.getValue('resolved_by') == '') {
+        g_form.addInfoMessage("REMINDER: Populate the Resolution information fields before saving an Incident in a Resolved or Closed State");
+    }
+}
+
+// Lab 4.1
+
+function onLoad() {
+    if (!g_user.hasRoleExactly('itil_admin')) {
+        g_form.removeOption('pack_type', 'cym3');
+        g_form.removeOption('pack_type', 'cym6');
+    }
+}
