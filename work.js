@@ -80,3 +80,21 @@ function onSubmit() {
         return ans;
     }
 }
+
+// Lab 2.3
+
+function onChange(control, oldValue, newValue, isLoading, isTemplate) {
+    if (isLoading || newValue === '') {
+        return;
+    }
+
+    // Document the current value of State, if New, use a decoration
+    var incState = g_form.getValue('incident');
+    jslog("<your_initials> = the value of incState is: " incState);
+
+    if (incState == 1) {
+        jslog("<your_initials> LINE 11 EXECUTED!");
+        g_form.addDecoration('state', 'icon-edit', 'Gathering initial details');
+        g_form.flash('state', 'teal', -4);
+    }
+}
