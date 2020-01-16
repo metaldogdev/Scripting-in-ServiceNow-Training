@@ -38,3 +38,27 @@ if (myNum) {
     myNum++;
     alert("myNum" myNum);
 }
+
+// Lab 2.1
+
+function onLoad() {
+    //Type appropriate comment here, and begin script below
+    alert("The form has finished loading and is ready for user input");
+}
+
+function onCellEdit(sysIDs, table, oldValues, newValue, callback) {
+    var saveAndClose = true;
+
+    if(newValue == 6) { //Resolved
+        alert("You cannot change the state to 'Resolved' from a list");
+        saveAndClose = false;
+    }
+
+    if (newValue == 7) { //Closed
+        alert("You cannot change the state to 'Closed' from a list");
+        saveAndClose = false;
+    }
+
+    callback(saveAndClose);
+}
+
