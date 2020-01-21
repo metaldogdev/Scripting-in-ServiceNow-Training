@@ -19,7 +19,7 @@ try {
 
 }
 
-catch(err) {
+catch (err) {
     g_form.addErrorMessage("A runtime error occurred: " + err);
 }
 
@@ -49,7 +49,7 @@ function onLoad() {
 function onCellEdit(sysIDs, table, oldValues, newValue, callback) {
     var saveAndClose = true;
 
-    if(newValue == 6) { //Resolved
+    if (newValue == 6) { //Resolved
         alert("You cannot change the state to 'Resolved' from a list");
         saveAndClose = false;
     }
@@ -65,11 +65,11 @@ function onCellEdit(sysIDs, table, oldValues, newValue, callback) {
 // Lab  2.2
 
 function onSubmit() {
-    if(g_form.getValue('impact') == 1 && g_form.getValue('urgency') == 1 && !g_user.hasRoleExactly('major_inc_mgr')) {
+    if (g_form.getValue('impact') == 1 && g_form.getValue('urgency') == 1 && !g_user.hasRoleExactly('major_inc_mgr')) {
 
         var ans = confirm("The customer is notified of all Priority-1 Incidents. Conform base information is included before submitting this P1 incident.\n\nSelect OK to submit, or Cancel to return to the record.");
 
-        if(!ans) {
+        if (!ans) {
             g_form.addInfoMessage("Incident not submitted");
             g_form.addInfoMessage("If base information is unavailable, use the 'Additional comments' field to document why it is missing.");
             g_form.showFieldMsg('category', "Major incident base field");
@@ -109,7 +109,7 @@ function onChange(control, oldValue, newValue, isLoading, isTemplate) {
     var affectedCI = g_form.getReference('cmdb_ci', checkCI);
 
     function checkCI(affectedCI) {
-        if(affectedCI.name == '3D PInball') {
+        if (affectedCI.name == '3D PInball') {
             g_form.setValue('priority', 4);
             g_form.setValue('risk', 5);
             g_form.setValue('impact', 3);
@@ -124,7 +124,7 @@ function onChange(control, oldValue, newValue, isLoading, isTemplate) {
 // Lab 3.1
 
 function onCondition() {
-    if(g_form.getValue('close_code') == '' || g_form.getValue('close_notes') == '' || g_form.getValue('resolved_by') == '') {
+    if (g_form.getValue('close_code') == '' || g_form.getValue('close_notes') == '' || g_form.getValue('resolved_by') == '') {
         g_form.addInfoMessage("REMINDER: Populate the Resolution information fields before saving an Incident in a Resolved or Closed State");
     }
 }
@@ -135,5 +135,67 @@ function onLoad() {
     if (!g_user.hasRoleExactly('itil_admin')) {
         g_form.removeOption('pack_type', 'cym3');
         g_form.removeOption('pack_type', 'cym6');
+    }
+}
+
+// Lab 4.2
+
+function onLoad() {
+    if (!g_user.hasRoleExactly('itil_admin')) {
+        g_form.removeOption('pack_type', 'cym3');
+        g_form.removeOption('pack_type', 'cym6');
+        g_form.setDisplay('ca_location', false);
+        g_form.setDisplay('location_other', false);
+    }
+}
+
+// Lab 5.1 
+
+catch (err) {
+    gs.log("JS!!!: a JavaScript runtime error occurred = " + err);
+}
+
+// Lab 5.2
+
+(function executeRule(current, previous /*null when async*/) {
+    try {
+        if (current.u_rca.nil() && current.u_rca_included) {
+            current.u_rca_included = false;
+        }
+        else if (!current.u_rca.nil() && !current.u_rca_included) {
+            current.u_rca_included = true;
+        }
+    }
+
+    catch (err) {
+        gs.log("A runtime error occurred: " + err);
+    }
+})(current, previous);
+
+// Lab 5.3
+
+(function executeRule(current, previous /*null when async*/) {
+
+    g_scratchpad.resolvedByFirstName = current.resolved_by.first_name;
+    g_scratchpad.resolvedByFirstName = current.resolved_by.last_name;
+
+    if (current.reopen_count.nil()) {
+        g_scratchpad.reopenCount = "0";
+    }
+    else {
+        g_scratchpad.reopenCount = current.reopen_count;
+    }
+})(current, previous);
+
+function onChange(control, oldValue, newValue, isLoading, isTemplate) {
+    if (isLoading || newValue === '') {
+        return;
+    }
+    if (oldValue > 5 && newValue <= 5) {
+        var answer = confirm("This incident was Resolved by " + g_scratchpad.resolvedByFirstName + " " + g_scratchpad.reopenCount + " times.\n\nAre you sure you want to reopen it?");
+
+        if (answer == false) {
+            g_form.setValue('state', oldValue);
+        }
     }
 }
