@@ -138,7 +138,7 @@ function onLoad() {
     }
 }
 
-// Lab 4.2
+// Lab 4.2   FINISH THIS ONE
 
 function onLoad() {
     if (!g_user.hasRoleExactly('itil_admin')) {
@@ -199,3 +199,18 @@ function onChange(control, oldValue, newValue, isLoading, isTemplate) {
         }
     }
 }
+
+// Lab 6.1
+
+(function executeRule(current, previous) /* null when async*/ {
+    try {
+        current.cab_date.setDisplayValue(gs.beginningOfNextWeek());
+        var nextMonday = current.cab_date.dateNumericValue();
+        var twoDays = 2*24*60*60*1000; //milliseconds
+        var nextWednesday = nextMonday + twoDays;
+        current.cab_date.setDateNumericValue(nextWednesday);
+    }
+    catch(err) {
+        gs.log("a runtime error occurred: " + err);
+    }
+})(current, previous);
