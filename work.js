@@ -206,11 +206,58 @@ function onChange(control, oldValue, newValue, isLoading, isTemplate) {
     try {
         current.cab_date.setDisplayValue(gs.beginningOfNextWeek());
         var nextMonday = current.cab_date.dateNumericValue();
-        var twoDays = 2*24*60*60*1000; //milliseconds
+        var twoDays = 2 * 24 * 60 * 60 * 1000; //milliseconds
         var nextWednesday = nextMonday + twoDays;
         current.cab_date.setDateNumericValue(nextWednesday);
     }
-    catch(err) {
+    catch (err) {
         gs.log("a runtime error occurred: " + err);
     }
+})(current, previous);
+
+// Lab 6.2
+
+action.setRedirectURL(current);
+
+var today = gs.nowDateTime();
+var closed = current.closed_at;
+var diff = gs.dateDiff(closed, today, true);
+var thirtyDays = 30 * 24 * 60 * 60; //seconds
+
+if (diff > thirtyDays) {
+    gs.addErrorMessage("A problem cannot be reopened after it has been closed for more than 30 days. Please open a new Problem.")
+}
+else {
+    new ProblemStateUtils().onReAnalyze(current);
+}
+
+// Lab 7.1
+
+(function executeRule(current, previous /* null when async*/) {
+    var sapIncs = new GlideRecord("incident");
+    sapIncs.addActiveQuery();
+    sapIncs.query('short_description', 'CONTAINS', 'SAP');
+
+    var myLog = '';
+
+    while (sapIncs.next()) {
+        myLog += sapIncs.number + ", ";
+    }
+    gs.addInfoMessage("These records are active SAP Incidents: " + myLog);
+})(current, previous);
+
+
+(function executeRule(current, previous) {
+    var makeVIP = new GlideRecord('sys_user');
+    q1 = makeVIP.addQuery('title', 'CONTAINS', 'VP');
+    q1.addOrCondition('title', 'CONTAINS', 'Vice');
+    q1.addOrCondition('title', 'CONTAINS', 'Chief');
+    makeVIP.query();
+
+    while (makeVIP.next()) {
+        makeVIP.vip = true;
+        gs.log("ADMIN: " + makeVIP.name + " with title: " + makeVIP.title + " is now a VIP");
+        makeVIP.update();
+    }
+
 })(current, previous);
