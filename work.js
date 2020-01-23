@@ -231,23 +231,10 @@ else {
     new ProblemStateUtils().onReAnalyze(current);
 }
 
-// Lab 7.1
+// Lab 7.1 VIP Users
 
-(function executeRule(current, previous /* null when async*/) {
-    var sapIncs = new GlideRecord("incident");
-    sapIncs.addActiveQuery();
-    sapIncs.query('short_description', 'CONTAINS', 'SAP');
+(function executeRule(current, previous /*null when async*/) {
 
-    var myLog = '';
-
-    while (sapIncs.next()) {
-        myLog += sapIncs.number + ", ";
-    }
-    gs.addInfoMessage("These records are active SAP Incidents: " + myLog);
-})(current, previous);
-
-
-(function executeRule(current, previous) {
     var makeVIP = new GlideRecord('sys_user');
     q1 = makeVIP.addQuery('title', 'CONTAINS', 'VP');
     q1.addOrCondition('title', 'CONTAINS', 'Vice');
@@ -259,5 +246,282 @@ else {
         gs.log("ADMIN: " + makeVIP.name + " with title: " + makeVIP.title + " is now a VIP");
         makeVIP.update();
     }
+})(current, previous);
+
+//Lab 7.2 RCA Update PRB and Child INCs
+
+(function executeRule(current, previous /*null when async*/) {
+
+    if (!current.problem_id.nil()) {
+        var prbRecord = new GlideRecord('problem');
+        prbRecord.get(current.problem_id);
+        prbRecord.work_notes += "\n\nRCA from " + current.number + ": " + current.u_rca;
+        prbRecord.update();
+    }
+
+    var childIncs = new GlideRecord("incident");
+    childIncs.addQuery("parent_incident", current.sys_id);
+    childIncs.query();
+
+    while (childIncs.next()) {
+        childIncs.u_rca += "RCA from " + current.number + ": " + current.u_rca;
+        childIncs.update();
+    }
 
 })(current, previous);
+
+//Lab 7.3 addEncodedQuery
+
+(function executeRule(current, previous /*null when async*/) {
+
+    var makeVIP = new GlideRecord('sys_user');
+    makeVIP.addEncodedQuerry("titleLIKEVice^ORtitleLIKEVP^ORtitleLIKEChief^roles=itil");
+    makeVIP.query();
+
+    while (makeVIP.next()) {
+        makeVIP.vip = true;
+        gs.log(makeVIP.name + " with title: " + makeVIP.title + " is now a VIP");
+        makeVIP.update();
+    }
+})(current, previous);
+
+//Lab 8.1 Tracking Impersonations
+
+gs.log("<YOUR_INITIALS> Script: user: " + event.parm1 + " impersonated user " + event.parm2);
+
+//Lab 8.2 Incident State Changed - Business Rule
+
+***** condition -> current.state.changes()
+
+    (function executeRule(current, previous /*null when async*/) {
+
+        gs.eventQueue('incident.state.changed', current, previous.state.getDisplayValue(), current.state.getDisplayValue());
+
+    })(current, previous);
+
+//Lab 8.2 Incident State Changed - Script Action
+
+var oldVal = event.parm1;
+var newVal = event.parm2;
+
+gs.log("<YOUR_INITIALS> Script: The Incident's State changed from " + oldVal + " to " + newVal + ".");
+
+
+// Lab 9.1
+
+function logPropertyValues(str) {
+    this.debug = true;
+    this.debugPrefix = "<your initials>";
+    if (this.debug) {
+        gs.log(this.debugPrefix + str);
+    }
+}
+
+(function executeRule(current, previous) /*null when async*/){
+
+    for (var property in current) {
+        if (current[property]) {
+            logPropertyValues(property + ", " + current[property]);
+        }
+    }
+
+}) (current, previous);
+
+// Lab 9.2 Restrict Location Options
+
+var LocationsByRole = Class.create();
+LocationsByRole.prototype = {
+    initialize: function () {
+        //Retrieve the logged-in user's 'User [sys_user]' record
+        this.loggedInUser = new GlideRecord('sys_user');
+        this.loggedInUser.get(gs.getUserID());
+    },
+
+    for CMDB: function() {
+        var refQual = "";
+        if (gs.hasRole('admin')) {
+            //Admins may assign CIs to All locations
+            refQual += "^EQ";
+        }
+        if (gs.hasRole('asset_mgr_local')) {
+            //Users with this role may assign CIs to local locations
+            refQual += "parent=" + this.loggedInUser.location.parent + "^EQ";
+        }
+        if (gs.hasRole('asset_mgr_corporate')) {
+            //Users with this role may assign CIs to corporate locations
+            refQual += "company=" + this.loggedInUser.location.company + "^EQ";
+        }
+
+        return refQual;
+    },
+
+    type: 'LocationsByRole'
+};
+
+
+// Lab 9.3
+
+var HelloWorld = Class.create();
+HelloWorld.prototype = Object.extendsObject(AbstractAjaxProcessor, {
+
+    alertGreeting: function () {
+        return "Hello " + this.getParameter('sysparm_user_name') + "!";
+    },
+
+    type: 'HelloWorld'
+});
+
+function onLoad() {
+    var ga = new GlideAjax('HelloWorld');
+    ga.addParam('sysparm_name', 'alertGreeting');
+    ga.addParam('sysparm_user_name', '<your_name>');
+    ga.getXML(HelloWorldParse);
+
+    function HelloWorldParse(response) {
+        var answerFromXML = response.responseXML.documentElement.getAttribute('answer');
+        alert(answerFromXML);
+    }
+}
+
+// Lab 9.4
+
+var AssignmentGroupUtils = Class.create();
+AssignmentGroupUtils.prototype = Object.extendsObject(AbstractAjaxProcessor, {
+    countGroupMembers: function () {
+        var grpName = "";
+        var message = "There are no members in this Assignment Group";
+        var groupID = this.getParameter('sysparm_group_id');
+
+        var grpMems = new GlideRecord('sys_user_grmember');
+        grpMems.addQuery('group.sys_id', groupID);
+        grpMems.query();
+
+        if (grpMems.next()) {
+            grpName = grpMems.getDisplayValue('group');
+        }
+
+        if (grpName != "") {
+            message = "There are " + grpMems.getRowCount() + " members in the " + grpName + " group";
+        }
+
+        return message;
+    },
+
+    type: 'AssignmentGroupUtils'
+});
+
+function onChange(control, oldValue, newValue, isLoading, isTemplate) {
+    if (isLoading || newValue === '') {
+        return;
+    }
+
+    var membersGA = new GlideAjax('AssignmentGroupUtils');
+    membersGA.addParam('sysparm_name', 'countGroupMembers');
+    membersGA.addParam('sysparm_group_id', g_form.getValue('assignment_group'));
+    membersGA.getXML(membersParse);
+
+    function membersParse(response) {
+        var myObj = response.responseXML.documentElement.getAttribute('answer');
+        alert(myObj);
+    }
+}
+
+// Lab 9.5
+
+assignAnalyst: function() {
+    var groupID = this.getParameter('sysparm_group_id');
+    var membersArray = [];
+
+    var membersGR = new GlideRecord('sys_user_grmember');
+    membersGR.addQuery('group.sys_id', groupID);
+    membersGR.query();
+
+    while (membersGR.next()) {
+        var member = {};
+        member.sys_id = membersGR.user.sys_id.toString();
+        member.name = membersGR.user.getDisplayValue();
+        membersArray.push(member);
+    }
+
+    return JSON.stringify(membersArray);
+},
+
+// doplnit len: 'assignAnalyst'
+// doplnit len: var members = JSON.parse(myObj);
+
+if (members.length > 0) {
+    var randomNum = Math.floor(Math.random() * members.length);
+    g_form.setValue('assigned_to', members[randomNum].sys_id, members[randomNum].name);
+}
+
+else {
+    g_form.setValue('assigned_to', "");
+    alert("The assignment group has no users assigned to it");
+}
+
+// Lab 10.1
+
+function confirmPriOne() {
+    var pri = g_form.getValue('priority');
+    if (pri != 1) {
+        gsftSubmit(null, g_form.getFormElement(), 'sysverb_insert');
+    }
+    else {
+        var confText = "Are you sure you want to submit a Priority 1 incident?";
+        if (confirm(confText)) {
+            gsftSubmit(null, g_form.getFormElement(), 'sysverb_insert');
+        }
+    }
+}
+
+// Lab 10.2
+
+current.update();
+try {
+    userURL = "sys_user.do?sys_id=";
+    action.setRedirectURL(userURL + current.caller_id);
+    action.setReturnURL(current);
+}
+catch (err) {
+    gs.error("<YOUR_INITIALS>", err);
+}
+
+// Lab 10.3
+
+function updateProblem() {
+    try {
+        var problemID = g_form.getValue('problem_id');
+        if (problem_id == "") {
+            alert('Problem ID is empty');
+        }
+        else {
+            gsftSubmit(null, g_form.getFormElement(), 'update_problem'); // call Action Name
+        }
+    }
+    catch (err) {
+        jslog("Client <your initials>: " + err);
+    }
+}
+
+if (typeof window == 'undefined')
+    serverSideFunction();
+
+function serverSideFunction() {
+    current.update();
+    try {
+        var problemNumber = current.problem_id;
+        var workNotesMessage = "<your initials> - Problem " + problemNumber.getDisplayValue() + " updated from Incident " + current.number + " UI Action";
+        var gr = new GlideRecord("problem");
+        gr.addQuery("sys_id", current.problem_id);
+        gr.query;
+        if (gr.next()) {
+            gr.work_notes = workNotesMessage;
+            gr.update();
+        }
+        gs.addInfoMessage(workNotesMessage);
+    }
+    catch (err) {
+        gs.error("Server <YOUR_INITIALS>", err);
+    }
+    action.setRedirectURL(current);
+}
